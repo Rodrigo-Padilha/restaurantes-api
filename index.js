@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
@@ -16,8 +17,28 @@ app.get("/", (req, res) => {
   res.send("API Restaurantes ativa 🚀");
 });
 
+// middleware de segurança do webhook
+function validarWebhook(req, res, next) {
+  const signature = req.headers["x-webhook-signature"];
+
+  if (!signature) {
+    return res.status(401).send("Webhook sem assinatura");
+  }
+
+  const hash = crypto
+    .createHmac("sha256", process.env.WEBHOOK_SECRET)
+    .update(JSON.stringify(req.body))
+    .digest("hex");
+
+  if (hash !== signature) {
+    return res.status(403).send("Assinatura inválida");
+  }
+
+  next();
+}
+
 // webhook da cakto
-app.post("/cakto-webhook", async (req, res) => {
+app.post("/cakto-webhook", validarWebhook, async (req, res) => {
   try {
     const payload = req.body;
 
