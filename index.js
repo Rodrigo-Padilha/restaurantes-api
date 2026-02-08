@@ -38,12 +38,28 @@ function validarWebhook(req, res, next) {
 }
 
 // webhook da cakto
-app.post("/cakto-webhook", validarWebhook, async (req, res) => {
+app.post("/cakto-webhook", async (req, res) => {
   try {
+
+    const signature =
+      req.headers["x-webhook-secret"] ||
+      req.headers["webhook-secret"] ||
+      req.headers["authorization"] ||
+      req.headers["x-cakto-signature"];
+
+    if (!signature) {
+      console.log("webhook sem assinatura");
+      return res.status(401).send("sem assinatura");
+    }
+
+    if (signature !== process.env.WEBHOOK_SECRET) {
+      console.log("assinatura inválida");
+      return res.status(403).send("assinatura inválida");
+    }
+
     const payload = req.body;
 
-    console.log("JSON COMPLETO DA CAKTO:");
-    console.log(JSON.stringify(payload, null, 2));
+    console.log("WEBHOOK RECEBIDO");
 
     const email = payload.data.customer.email;
     const senha = payload.data.customer.docNumber;
@@ -55,12 +71,12 @@ app.post("/cakto-webhook", validarWebhook, async (req, res) => {
       displayName: nome
     });
 
-    console.log("USUÁRIO CRIADO NO FIREBASE:", user.uid);
+    console.log("USUÁRIO CRIADO:", user.uid);
 
     res.status(200).json({ success: true });
 
   } catch (err) {
-    console.error("ERRO AO CRIAR USUÁRIO:", err.message);
+    console.error("ERRO:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
