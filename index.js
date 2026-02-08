@@ -1,7 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
-const crypto = require("crypto");
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
@@ -21,8 +20,23 @@ app.get("/", (req, res) => {
 app.post("/cakto-webhook", async (req, res) => {
   try {
 
-    console.log("WEBHOOK RECEBIDO:");
-    console.log(JSON.stringify(req.body, null, 2));
+    // valida chave secreta enviada pela Cakto
+    const secretRecebido =
+      req.headers["x-webhook-secret"] ||
+      req.headers["webhook-secret"] ||
+      req.headers["authorization"];
+
+    if (!secretRecebido) {
+      console.log("WEBHOOK BLOQUEADO: sem chave");
+      return res.status(401).send("sem chave");
+    }
+
+    if (secretRecebido !== process.env.WEBHOOK_SECRET) {
+      console.log("WEBHOOK BLOQUEADO: chave inválida");
+      return res.status(403).send("chave inválida");
+    }
+
+    console.log("WEBHOOK AUTORIZADO");
 
     const payload = req.body;
 
