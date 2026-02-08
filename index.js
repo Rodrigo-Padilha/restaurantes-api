@@ -21,31 +21,15 @@ app.get("/", (req, res) => {
 app.post("/cakto-webhook", async (req, res) => {
   try {
 
-    console.log("HEADERS RECEBIDOS:");
-    console.log(req.headers);
-
-    // tenta capturar a assinatura em vários headers possíveis
-    const signature =
-      req.headers["x-webhook-secret"] ||
-      req.headers["webhook-secret"] ||
-      req.headers["authorization"] ||
-      req.headers["x-cakto-signature"];
-
-    if (!signature) {
-      console.log("WEBHOOK SEM ASSINATURA");
-      return res.status(401).send("Webhook sem assinatura");
-    }
-
-    // valida comparando com o secret do .env
-    if (signature !== process.env.WEBHOOK_SECRET) {
-      console.log("ASSINATURA INVÁLIDA");
-      return res.status(403).send("Assinatura inválida");
-    }
+    console.log("WEBHOOK RECEBIDO:");
+    console.log(JSON.stringify(req.body, null, 2));
 
     const payload = req.body;
 
-    console.log("WEBHOOK RECEBIDO:");
-    console.log(JSON.stringify(payload, null, 2));
+    if (!payload || !payload.data || !payload.data.customer) {
+      console.log("payload fora do padrão");
+      return res.status(400).send("payload inválido");
+    }
 
     const email = payload.data.customer.email;
     const senha = payload.data.customer.docNumber;
