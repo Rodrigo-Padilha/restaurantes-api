@@ -17,30 +17,11 @@ app.get("/", (req, res) => {
   res.send("API Restaurantes ativa 🚀");
 });
 
-// middleware de segurança do webhook
-function validarWebhook(req, res, next) {
-  const signature = req.headers["x-webhook-signature"];
-
-  if (!signature) {
-    return res.status(401).send("Webhook sem assinatura");
-  }
-
-  const hash = crypto
-    .createHmac("sha256", process.env.WEBHOOK_SECRET)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
-
-  if (hash !== signature) {
-    return res.status(403).send("Assinatura inválida");
-  }
-
-  next();
-}
-
 // webhook da cakto
 app.post("/cakto-webhook", async (req, res) => {
   try {
 
+    // tenta capturar a assinatura em vários headers possíveis
     const signature =
       req.headers["x-webhook-secret"] ||
       req.headers["webhook-secret"] ||
@@ -48,18 +29,20 @@ app.post("/cakto-webhook", async (req, res) => {
       req.headers["x-cakto-signature"];
 
     if (!signature) {
-      console.log("webhook sem assinatura");
-      return res.status(401).send("sem assinatura");
+      console.log("WEBHOOK SEM ASSINATURA");
+      return res.status(401).send("Webhook sem assinatura");
     }
 
+    // valida comparando com o secret do .env
     if (signature !== process.env.WEBHOOK_SECRET) {
-      console.log("assinatura inválida");
-      return res.status(403).send("assinatura inválida");
+      console.log("ASSINATURA INVÁLIDA");
+      return res.status(403).send("Assinatura inválida");
     }
 
     const payload = req.body;
 
-    console.log("WEBHOOK RECEBIDO");
+    console.log("WEBHOOK RECEBIDO:");
+    console.log(JSON.stringify(payload, null, 2));
 
     const email = payload.data.customer.email;
     const senha = payload.data.customer.docNumber;
