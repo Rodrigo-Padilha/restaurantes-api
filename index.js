@@ -20,6 +20,9 @@ app.get("/", (req, res) => {
 app.post("/cakto-webhook", async (req, res) => {
   try {
 
+    console.log("HEADERS RECEBIDOS:");
+    console.log(req.headers);
+
     // valida chave secreta enviada pela Cakto
     const secretRecebido =
       req.headers["x-webhook-secret"] ||
