@@ -18,26 +18,37 @@ app.get("/", (req, res) => {
 });
 
 // webhook da cakto
-app.post('/webhook', (req, res) => {
-  const signature = req.headers['x-signature'] || req.headers['x-cakto-signature'];
+app.post("/cakto-webhook", async (req, res) => {
+  try {
 
-  if (!signature) {
-    return res.status(401).send('WEBHOOK BLOQUEADO: sem assinatura');
+    console.log("WEBHOOK RECEBIDO:");
+    console.log(JSON.stringify(req.body, null, 2));
+
+    const payload = req.body;
+
+    if (!payload || !payload.data || !payload.data.customer) {
+      console.log("payload fora do padrão");
+      return res.status(400).send("payload inválido");
+    }
+
+    const email = payload.data.customer.email;
+    const senha = payload.data.customer.docNumber;
+    const nome = payload.data.customer.name;
+
+    const user = await admin.auth().createUser({
+      email: email,
+      password: senha,
+      displayName: nome
+    });
+
+    console.log("USUÁRIO CRIADO:", user.uid);
+
+    res.status(200).json({ success: true });
+
+  } catch (err) {
+    console.error("ERRO:", err.message);
+    res.status(500).json({ error: err.message });
   }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', '592fb8be-4673-429c-8278-f215af77b1f0')
-    .update(req.rawBody)
-    .digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(401).send('WEBHOOK BLOQUEADO: assinatura inválida');
-  }
-
-  console.log('WEBHOOK AUTENTICADO');
-
-  // processa purchase_approved aqui
-  res.sendStatus(200);
 });
 
 app.listen(3000, () => {
